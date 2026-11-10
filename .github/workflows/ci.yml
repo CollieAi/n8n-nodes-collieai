@@ -1,0 +1,87 @@
+name: CI
+
+# Offline checks of the node: types, n8n's strict lint, the unit tests and the
+# build, on the Node.js of n8n's images (22) and the current LTS (24). No
+# secrets, no CollieAi service, no publishing. Pull requests from forks run
+# with a read-only token; `CI required` is the single check branch protection
+# requires, and it fails unless every job below succeeded — a skipped or
+# cancelled job is not a pass.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node:
+    name: Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Install
+        run: npm ci
+      - name: Types and lint
+        run: |
+          npm run typecheck
+          npm run lint
+      - name: Tests (nothing may be skipped)
+        run: |
+          npm test -- --reporter=default --reporter=json --outputFile.json=results.json
+          node -e '
+            const r = require("./results.json");
+            const skipped = r.numPendingTests + r.numTodoTests;
+            console.log(r.numTotalTests + " tests, " + skipped + " skipped");
+            if (!r.success || r.numTotalTests === 0 || skipped !== 0) {
+              console.error("a failed, skipped or empty test run is not a pass");
+              process.exit(1);
+            }'
+      - name: The package builds and ships only its build
+        run: |
+          npm run build
+          npm pack --dry-run --json > pack.json
+          node -e '
+            const pkg = require("./package.json");
+            const files = require("./pack.json")[0].files.map((f) => f.path);
+            const top = new Set(["package.json", "README.md", "LICENSE", "CHANGELOG.md"]);
+            const stray = files.filter((f) => !top.has(f) && !f.startsWith("dist/"));
+            const missing = [...pkg.n8n.nodes, ...pkg.n8n.credentials].filter((f) => !files.includes(f));
+            const tests = files.filter((f) => f.startsWith("dist/test/"));
+            console.log(files.length + " files in the package");
+            if (stray.length || missing.length || tests.length) {
+              console.error({ stray, missing, tests });
+              process.exit(1);
+            }'
+
+  required:
+    name: CI required
+    needs: [node]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every job succeeded
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "job results: $RESULTS"
+          for result in $RESULTS; do
+            [ "$result" = "success" ] || { echo "a job ended as '$result' — not a pass"; exit 1; }
+          done
+          [ "$(echo "$RESULTS" | wc -w)" -eq 1 ] || { echo "expected one job result"; exit 1; }

@@ -1,0 +1,7 @@
+# A byte copy of the CollieAi Node SDK's pacer (node/src/pacing.ts in
+# CollieAi/collieai-sdk), kept equal to it.
+nodes/CollieAi/pacing.ts
+
+# A byte copy of the SDKs' shared verdict vectors
+# (conformance/verdict_cases.json in CollieAi/collieai-sdk), kept equal to it.
+test/verdict_cases.json

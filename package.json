@@ -1,0 +1,72 @@
+{
+	"name": "@collieai/n8n-nodes-collieai",
+	"version": "0.1.0",
+	"description": "n8n node that checks text against your CollieAi policy: prompt injection, PII, secrets and unsafe output, before and after the model.",
+	"license": "MIT",
+	"homepage": "https://github.com/CollieAi/n8n-nodes-collieai#readme",
+	"keywords": [
+		"n8n-community-node-package",
+		"n8n",
+		"collieai",
+		"llm-security",
+		"ai-guardrails",
+		"prompt-injection",
+		"pii-redaction"
+	],
+	"author": {
+		"name": "CollieAi",
+		"email": "sdk@collieai.io",
+		"url": "https://collieai.io"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/CollieAi/n8n-nodes-collieai.git"
+	},
+	"bugs": {
+		"url": "https://github.com/CollieAi/n8n-nodes-collieai/issues"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"build": "n8n-node build",
+		"build:watch": "tsc --watch",
+		"dev": "n8n-node dev",
+		"lint": "n8n-node lint",
+		"lint:fix": "n8n-node lint --fix",
+		"test": "vitest run",
+		"typecheck": "tsc -p tsconfig.test.json",
+		"release": "n8n-node release",
+		"prepublishOnly": "n8n-node prerelease",
+		"mutation": "stryker run"
+	},
+	"files": [
+		"dist"
+	],
+	"n8n": {
+		"n8nNodesApiVersion": 1,
+		"strict": true,
+		"credentials": [
+			"dist/credentials/CollieAiApi.credentials.js"
+		],
+		"nodes": [
+			"dist/nodes/CollieAi/CollieAi.node.js"
+		]
+	},
+	"devDependencies": {
+		"@n8n/node-cli": "0.55.5",
+		"@stryker-mutator/core": "8.7.1",
+		"@stryker-mutator/vitest-runner": "8.7.1",
+		"eslint": "9.32.0",
+		"prettier": "3.6.2",
+		"release-it": "^21.1.0",
+		"typescript": "5.9.2",
+		"vitest": "3.2.7"
+	},
+	"peerDependencies": {
+		"n8n-workflow": "*"
+	},
+	"engines": {
+		"node": ">=20.3.0"
+	}
+}
