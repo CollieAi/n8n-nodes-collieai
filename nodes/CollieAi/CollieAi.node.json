@@ -1,0 +1,18 @@
+{
+	"node": "@collieai/n8n-nodes-collieai.collieAi",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Development"],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://github.com/CollieAi/n8n-nodes-collieai#credentials"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/CollieAi/n8n-nodes-collieai#readme"
+			}
+		]
+	}
+}

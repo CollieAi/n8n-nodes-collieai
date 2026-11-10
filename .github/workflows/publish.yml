@@ -1,0 +1,90 @@
+name: Publish
+
+# Publishes the package to npm, with a provenance statement, when a version
+# tag `v<version of package.json>` is pushed; only the repository's admins can
+# create tags, and the tag must be on main, so a published commit came through
+# a reviewed PR and `CI required`. The release runs CI's checks first, and
+# n8n-node's release (`npm run release` in GitHub Actions) lints, builds and
+# publishes with provenance.
+#
+# npm authenticates this workflow by OIDC: a Trusted Publisher for this
+# repository and this file, no environment, allowed to `npm publish`. Only the
+# package's first version is different: npm configures a Trusted Publisher
+# only on a package that exists, so `0.1.0-bootstrap.0` is published with a
+# short-lived token in the NPM_TOKEN secret. Any other version refuses to run
+# while that secret exists, so it cannot pass on the token instead of OIDC.
+#
+# A prerelease starts with alpha, beta, rc or bootstrap and goes to that
+# dist-tag (`0.2.0-beta.1` to `beta`), never to `latest`.
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions: {}
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      # The OIDC token: npm's Trusted Publishing and the provenance statement.
+      id-token: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          # The whole history, for the check that the tag is on main.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24
+      - name: The tag names the package's version on main; npm can use OIDC
+        run: |
+          version=$(node -p 'require("./package.json").version')
+          [ "$GITHUB_REF_NAME" = "v$version" ] || { echo "tag $GITHUB_REF_NAME is not v$version"; exit 1; }
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "$GITHUB_SHA is not on main"; exit 1; }
+          node -e '
+            const [a, b, c] = process.argv[1].split(".").map(Number);
+            if (a < 11 || (a === 11 && (b < 5 || (b === 5 && c < 1)))) {
+              console.error("npm " + process.argv[1] + ": Trusted Publishing needs 11.5.1 or newer");
+              process.exit(1);
+            }' "$(npm --version)"
+      - name: Install
+        run: npm ci
+      - name: Types and tests
+        run: |
+          npm run typecheck
+          npm test
+      - name: Release
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          version=$(node -p 'require("./package.json").version')
+          tag=latest
+          case "$version" in
+            *-*)
+              pre=${version#*-}
+              tag=${pre%%.*}
+              case "$tag" in
+                alpha | beta | rc | bootstrap) ;;
+                *) echo "$version: a prerelease starts with alpha, beta, rc or bootstrap"; exit 1 ;;
+              esac
+              ;;
+          esac
+          if [ "$tag" = bootstrap ]; then
+            [ -n "$NPM_TOKEN" ] || { echo "$version: the bootstrap version needs the NPM_TOKEN secret"; exit 1; }
+            npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
+          elif [ -n "$NPM_TOKEN" ]; then
+            echo "$version: delete the NPM_TOKEN secret; every version but the bootstrap goes through OIDC"
+            exit 1
+          fi
+          export NPM_CONFIG_TAG=$tag
+          echo "publishing $version under the dist-tag $tag"
+          npm run release
