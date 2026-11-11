@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0 (unreleased)
+## 0.1.0 (2026-11-11)
 
 - The CollieAi node: Check Input and Check Output against the project's
   policy, one output, the masked text passed on, fail-safe verdicts.
