@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { normalizeBaseUrl } from '../nodes/CollieAi/baseUrl';
-import { CheckError, httpError, serverError } from '../nodes/CollieAi/errors';
+import { CheckError, NEXT_STEP, httpError, serverError } from '../nodes/CollieAi/errors';
 
 describe('the server error identifiers', () => {
 	it('reads type and code from an OpenAI-style body', () => {
@@ -138,5 +138,18 @@ describe('the Base URL', () => {
 			message:
 				'Base URL must be an https:// URL (http:// only for localhost), with no user name, password, query or fragment',
 		});
+	});
+});
+
+describe('the next step n8n shows under the message', () => {
+	// n8n's UX guidelines for verified nodes: a description tells how to get
+	// unstuck, and neither it nor the message says error, problem, failure or
+	// mistake. The record's type makes every code have one.
+	const RULED_OUT = /\b(error|problem|failure|mistake)s?\b/i;
+
+	it.each(Object.entries(NEXT_STEP))('%s: says what to do, in its own words', (_code, step) => {
+		expect(step).toMatch(/^[A-Z]/);
+		expect(step).not.toMatch(/[.\s]$/);
+		expect(step).not.toMatch(RULED_OUT);
 	});
 });

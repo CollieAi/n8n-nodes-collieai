@@ -68,6 +68,16 @@ jobs:
               console.error({ stray, missing, tests });
               process.exit(1);
             }'
+      - name: n8n's community package scan, before publishing
+        # The rules n8n vets verified nodes with: newer than `npm run lint`'s,
+        # and blind to eslint-disable comments. Pinned; raise it on purpose.
+        if: matrix.node == 22
+        run: |
+          npm install --prefix "$RUNNER_TEMP/scan" --ignore-scripts --no-audit --no-fund \
+            @n8n/scan-community-package@0.43.0
+          mkdir "$RUNNER_TEMP/package"
+          tar -xzf "$(npm pack --silent)" -C "$RUNNER_TEMP/package" --strip-components=1
+          node .github/scripts/scan.mjs "$RUNNER_TEMP/scan" . "$RUNNER_TEMP/package"
 
   required:
     name: CI required

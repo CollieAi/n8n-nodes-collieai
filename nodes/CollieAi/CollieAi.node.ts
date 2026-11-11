@@ -11,7 +11,7 @@ import { NodeApiError, NodeConnectionTypes, NodeOperationError, sleep } from 'n8
 
 import { normalizeBaseUrl } from './baseUrl';
 import { runCheck, type CheckDeps } from './check';
-import { CheckError } from './errors';
+import { CheckError, NEXT_STEP } from './errors';
 import { deadlineSignal } from './pacing';
 import type { CheckResult, Phase } from './verdict';
 
@@ -29,11 +29,12 @@ function asCheckError(error: unknown): CheckError {
 	return new CheckError('node_error', message);
 }
 
+/** The next step, then the identifiers support asks for. */
 function describe(error: CheckError): string {
-	const parts = [`CollieAi error code: ${error.code}`];
-	if (error.serverCode !== undefined) parts.push(`server code: ${error.serverCode}`);
-	if (error.jobId !== undefined) parts.push(`job: ${error.jobId}`);
-	return parts.join(', ');
+	const ids = [`code: ${error.code}`];
+	if (error.serverCode !== undefined) ids.push(`server code: ${error.serverCode}`);
+	if (error.jobId !== undefined) ids.push(`job ID: ${error.jobId}`);
+	return `${NEXT_STEP[error.code]} (${ids.join(', ')})`;
 }
 
 function toNodeError(node: INode, error: CheckError, itemIndex: number) {

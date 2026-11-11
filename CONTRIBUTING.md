@@ -38,7 +38,10 @@ npm run build
 ```
 
 `npm run lint` is n8n's strict lint for verified community nodes; a change
-that needs it relaxed is not accepted. `npm run mutation` runs the mutation
+that needs it relaxed is not accepted. CI also runs n8n's community package
+scan on the source and on the packed package (`.github/scripts/scan.mjs`):
+its rules are the ones n8n vets verified nodes with, and they ignore
+`eslint-disable` comments. `npm run mutation` runs the mutation
 tests (Stryker); it is slow and not part of CI.
 
 `nodes/CollieAi/pacing.ts` and `test/verdict_cases.json` are byte copies of
