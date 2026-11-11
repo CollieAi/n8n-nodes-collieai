@@ -9,6 +9,7 @@ vi.mock('n8n-workflow', async (importOriginal) => ({
 }));
 
 import { CollieAi } from '../nodes/CollieAi/CollieAi.node';
+import { NEXT_STEP, type CheckErrorCode } from '../nodes/CollieAi/errors';
 
 const KEY = 'clai_secret_key_value';
 const TEXT = 'my card is 4111 1111 1111 1111';
@@ -286,7 +287,7 @@ describe.each(FAILURES)('when %s', (_case, setup, code) => {
 		);
 		expect(error instanceof NodeApiError || error instanceof NodeOperationError).toBe(true);
 		const text = exposed(error);
-		expect(text).toContain(`CollieAi error code: ${code}`);
+		expect(text).toContain(`${NEXT_STEP[code as CheckErrorCode]} (code: ${code}`);
 		expect(text).not.toContain(KEY);
 		expect(text).not.toContain('4111');
 	});
@@ -416,17 +417,17 @@ describe('what a failed check says', () => {
 		[
 			'a refused create names the server code',
 			{ answers: [{ statusCode: 400, body: { error: { code: 'invalid_input_gate' } } }] },
-			'CollieAi error code: rejected, server code: invalid_input_gate',
+			`${NEXT_STEP.rejected} (code: rejected, server code: invalid_input_gate)`,
 		],
 		[
 			'a failed poll names the job',
 			{ answers: [CREATED, { statusCode: 500, body: {} }] },
-			'CollieAi error code: server_error, job: job-1',
+			`${NEXT_STEP.server_error} (code: server_error, job ID: job-1)`,
 		],
 		[
 			'an error before the job names only the code',
 			{ params: [{ text: '' }] },
-			'CollieAi error code: empty_text',
+			"Map a non-empty value to 'Text', or leave the empty items out before this node (code: empty_text)",
 		],
 	] as Array<[string, Setup, string]>)('%s', async (_label, setup, description) => {
 		const error = (await run(setup)

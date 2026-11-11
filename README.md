@@ -7,7 +7,11 @@ injection, PII, secrets, unsafe output and the other rules of the policy run
 on CollieAi's side; the node tells the workflow whether the text may go on,
 and gives back the masked text when a rule masked it.
 
-You need a CollieAi project and its API key (`clai_…`).
+You need a CollieAi project and its API key (`clai_…`). Sign up at
+[app.collieai.io](https://app.collieai.io): the first visit to **Get Started**
+sets up a project with the Starter policy and a key. The Starter policy starts
+in Monitor, where rules only log: nothing is blocked or masked until you
+switch the policy to Enforce on the **Policies** page.
 
 - [Install](#install)
 - [Credentials](#credentials)
@@ -16,6 +20,7 @@ You need a CollieAi project and its API key (`clai_…`).
 - [Branching](#branching)
 - [Errors](#errors)
 - [Limits](#limits)
+- [CollieAi or n8n's Guardrails node?](#collieai-or-n8ns-guardrails-node)
 
 ## Install
 
@@ -72,7 +77,7 @@ object:
       { "ruleId": "…", "ruleName": "PII", "ruleType": "pii", "decision": "mask", "monitoring": false }
     ],
     "jobId": "…",
-    "requestId": "…"
+    "requestId": null
   }
 }
 ```
@@ -84,7 +89,8 @@ object:
 | `text` | The text to pass on: masked when a rule masked it, else the original. `null` when blocked |
 | `blockMessage` | The rule's message for the user, when one blocked |
 | `triggeredRules` | The rules that matched. A rule in Monitor has `monitoring: true` and does not block |
-| `jobId`, `requestId` | For CollieAi support and Logs |
+| `jobId` | The check's ID in CollieAi Logs; give it to CollieAi support |
+| `requestId` | `null`: CollieAi does not return a request ID for checks yet |
 
 Pass `collieai.text` on, not the original text: it is the one the policy
 masked.
@@ -102,6 +108,11 @@ Chat Trigger → CollieAi (Check Input) → IF allowed → AI Agent → CollieAi
                                          └ else → reply with collieai.blockMessage       └ else → reply with collieai.blockMessage
 ```
 
+If the agent's model already goes through CollieAi (its credential's Base URL
+pointed at CollieAi), the same policy checks each turn twice, and a block
+there is an error of the AI Agent node, which stops the workflow. Use one of
+the two, or set the AI Agent's On Error to handle it.
+
 ## Errors
 
 A check that cannot be made never comes out as allowed. What happens is
@@ -111,7 +122,7 @@ n8n's **On Error** setting of the node:
 |---|---|
 | Stop Workflow (default) | The workflow stops with the error |
 | Continue | The item comes out blocked: `allowed: false`, `blocked: true`, and `collieai.error` with a `code` and a `message` |
-| Continue (using error output) | The item goes to the error output, with the message |
+| Continue (using error output) | The item goes to the error output; n8n replaces its fields with the error message |
 
 The error never carries your API key or the checked text.
 
@@ -137,6 +148,14 @@ quota.
 - Items are checked one after another within an execution. Parallel
   executions run their checks at the same time; your project's rate limit,
   if set, applies to them together.
+
+## CollieAi or n8n's Guardrails node?
+
+n8n's Guardrails node runs its checks inside the workflow, set up node by
+node, with your own chat model for the LLM-based ones. CollieAi keeps one
+policy per project that every integration applies — this node, the
+OpenAI-compatible proxy, the SDKs and LiteLLM — records each check in
+CollieAi Logs, and lets you try a rule in Monitor before it blocks.
 
 ## Contributing and security
 

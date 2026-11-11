@@ -20,6 +20,32 @@ export type CheckErrorCode =
 	| 'invalid_response'
 	| 'node_error';
 
+/** What to do next, per code: the description n8n shows under the message.
+ * n8n's UX guidelines: a description tells how to get unstuck, and neither it
+ * nor the message uses the words error, problem, failure or mistake. */
+export const NEXT_STEP: Record<CheckErrorCode, string> = {
+	retry_on_fail_unsupported: "Open the node's Settings and turn off 'Retry On Fail'",
+	invalid_base_url: "Correct 'Base URL' in the 'CollieAi API' credential",
+	invalid_parameter: 'Correct the parameter the message names, then run the node again',
+	empty_text: "Map a non-empty value to 'Text', or leave the empty items out before this node",
+	unauthorized:
+		"Check 'API Key' in the 'CollieAi API' credential: it must be an active key of your CollieAi project",
+	rejected: "Check 'Text' and the node's parameters, then run the node again",
+	rate_limited:
+		"Run the workflow again in a minute, or raise 'Rate limit' in the project's settings in CollieAi",
+	quota_exceeded: 'Wait until the monthly quota resets, or upgrade the plan in CollieAi',
+	server_error:
+		'Run the workflow again in a minute; if it repeats, send the details in parentheses to CollieAi support',
+	connection_error:
+		"Check 'Base URL' in the 'CollieAi API' credential and that n8n can reach it, then run the workflow again",
+	timeout: "Run the workflow again; if it repeats, raise 'Timeout' in the node's options",
+	job_failed:
+		'Run the workflow again; if it repeats, send the details in parentheses to CollieAi support',
+	invalid_response:
+		'Run the workflow again; if it repeats, send the details in parentheses to CollieAi support',
+	node_error: "Check the node's parameters and its 'CollieAi API' credential",
+};
+
 const SERVER_CODE = /^[a-z0-9_.-]{1,64}$/;
 
 export class CheckError extends Error {
